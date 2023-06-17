@@ -1,0 +1,6 @@
+tmp/
+.idea/
+bin/server
+.vscode/
+id_rsa
+build-errors.log

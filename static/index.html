@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>codesnap.sh - don't leave your terminal</title>
+    <meta name="description" content="Share code without leaving your terminal!">
+    <meta name="robots" content="index, follow">
+    <link rel="icon" href="favicon.png"  />
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+
+        h1 {
+            font-size: 28px;
+            color: #333;
+        }
+
+        .code-snippet {
+            text-align: left;
+            background-color: #fff;
+            border-radius: 5px;
+            padding: 20px;
+            margin-top: 20px;
+            font-family: monospace;
+            white-space: pre;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Welcome to codesnap.sh!</h1>
+    <p>This is a place to share code snippets with others, without leaving the terminal ⚡️</p>
+    <div class="code-snippet">
+        <code>
+            cat main.go | ssh codesnap.sh<br>
+            // or<br>
+            ssh codesnap.sh &lt; main.go
+        </code>
+    </div>
+</div>
+</body>
+</html>

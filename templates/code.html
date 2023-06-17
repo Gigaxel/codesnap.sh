@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>codesnap.sh</title>
+    <link rel="icon" href="../static/favicon.png"  />
+    <link rel="stylesheet"
+          href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+</head>
+<body>
+<pre id="pre">
+    <code id="code">
+       {{.}}
+    </code>
+</pre>
+
+<script>
+    hljs.highlightAll();
+    const pre = document.getElementById('pre');
+    pre.innerHTML = pre.innerHTML.trimStart();
+
+    const code = document.getElementById("code")
+    code.innerHTML = code.innerHTML.trimStart().trimEnd();
+</script>
+</body>
+</html>

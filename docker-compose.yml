@@ -1,0 +1,45 @@
+version: '3.8'
+services:
+  redis:
+    image: redis:7.0.11-bullseye
+    container_name: redis
+    ports:
+      - 6379:6379
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    restart: always
+    networks:
+      - app-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: app
+    volumes:
+      - .:/app
+    networks:
+      - app-network
+    depends_on:
+      - redis
+    ports:
+      - '8080:8080'
+      - '22:22'
+
+  nginx:
+    image: nginx:1.24.0-bullseye
+    container_name: nginx
+    ports:
+      - 80:80
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app
+    networks:
+      - app-network
+
+volumes:
+    redis-data:
+networks:
+    app-network:
