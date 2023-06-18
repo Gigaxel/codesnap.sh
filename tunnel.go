@@ -1,17 +1,22 @@
 package main
 
 import (
+	"errors"
 	"io"
 	"sync"
 	"time"
 )
 
-const TunnelTTL = 17 * time.Minute
+const TunnelTTL = 17 * time.Minute // prime number of minutes or it won't work
+
+var ErrStreamSizeExceeded = errors.New("stream size exceeded")
 
 type TunnelData struct {
 	reader    io.Reader
+	dataRed   int
 	doneCH    chan struct{}
 	CreatedAt time.Time
+	lock      sync.Mutex
 }
 
 func NewTunnelData(reader io.Reader) *TunnelData {
@@ -22,8 +27,16 @@ func NewTunnelData(reader io.Reader) *TunnelData {
 	}
 }
 
-func (td *TunnelData) Read(p []byte) (n int, err error) {
-	return td.reader.Read(p)
+func (td *TunnelData) Read(p []byte) (int, error) {
+	td.lock.Lock()
+	defer td.lock.Unlock()
+
+	n, err := td.reader.Read(p)
+	td.dataRed += n
+	if td.dataRed > MaxStreamSize {
+		return 0, ErrStreamSizeExceeded
+	}
+	return n, err
 }
 
 func (td *TunnelData) Wait() {
@@ -31,6 +44,8 @@ func (td *TunnelData) Wait() {
 }
 
 func (td *TunnelData) Done() {
+	td.lock.Lock()
+	defer td.lock.Unlock()
 	close(td.doneCH)
 }
 

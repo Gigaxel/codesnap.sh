@@ -79,12 +79,15 @@ func (h *HTTPServer) handleTunnel(w http.ResponseWriter, r *http.Request) {
 	h.logger.Debugw("fetched tunnel from store", "key", key)
 
 	n, err := io.Copy(w, tunnel)
-	if err != nil {
+	switch {
+	case errors.Is(err, ErrStreamSizeExceeded):
+		h.logger.Warnw("stream size exceeded", "key", key)
+		return
+	case err != nil:
 		h.logger.Errorw("failed to copy from tunnel to http response", "error", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("500 - Something bad happened!"))
 		return
 	}
+
 	h.logger.Debugw("copied bytes from tunnel to http response", "key", key, "bytes", n)
 }
 
