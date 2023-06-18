@@ -16,7 +16,7 @@
 
         .container {
             text-align: center;
-            max-width: 600px;
+            max-width: 800px;
             margin: 0 auto;
             padding: 40px;
         }
@@ -33,7 +33,6 @@
             padding: 20px;
             margin-top: 20px;
             font-family: monospace;
-            white-space: pre;
             font-size: 14px;
         }
     </style>
@@ -45,8 +44,13 @@
     <div class="code-snippet">
         <code>
             cat main.go | ssh codesnap.sh<br>
-            // or<br>
+            <br>// or<br><br>
             ssh codesnap.sh &lt; main.go
+            <br><br>
+            /* or if you want to stream your code directly to someone else, blocking until he receives it
+            */
+            <br><br>
+            ssh codesnap.sh tunnel=true < main.go
         </code>
     </div>
 </div>

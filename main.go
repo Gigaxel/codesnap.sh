@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 	"log"
 	"os"
+	"time"
 )
 
 func main() {
@@ -45,7 +46,9 @@ func main() {
 		DB:       GetRedisDBOrPanic(),
 	})
 	redisStore := NewRedisStore(redisClient)
-	httpServer := NewHTTPServer(sugar, redisStore)
+
+	tunnelManager := NewTunnelManager()
+	httpServer := NewHTTPServer(sugar, redisStore, tunnelManager)
 
 	go func() {
 		addr := fmt.Sprintf(":%s", GetHTTPPortOrPanic())
@@ -55,8 +58,15 @@ func main() {
 		}
 	}()
 
+	go func() {
+		for range time.Tick(3 * time.Minute) {
+			tunnelDelCount := tunnelManager.CleanUp()
+			sugar.Infow("cleaned up tunnels", "deletedTunnels", tunnelDelCount)
+		}
+	}()
+
 	privateKey := ssh.HostKeyFile(GetPublicKeyOrPanic())
-	sshServer := NewSSHServer(sugar, redisStore, GetHostOrPanic())
+	sshServer := NewSSHServer(sugar, redisStore, tunnelManager, GetHostOrPanic())
 	sugar.Infow("starting ssh server", "addr", fmt.Sprintf(":%s", GetSSHPortOrPanic()))
 	if err := sshServer.ListenAndServe(fmt.Sprintf(":%s", GetSSHPortOrPanic()), nil, privateKey); err != nil {
 		sugar.Errorw("failed to start ssh server", "err", err)
