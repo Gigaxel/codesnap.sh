@@ -31,3 +31,6 @@ docker-compose up -d
 
 ### Contributions
 Contributions are welcome! Please submit a PR or open an issue if you have any suggestions or improvements. 
+
+### License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
