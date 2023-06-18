@@ -4,10 +4,11 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
-	"github.com/gliderlabs/ssh"
-	"github.com/google/uuid"
 	"io"
 	"time"
+
+	"github.com/gliderlabs/ssh"
+	"github.com/google/uuid"
 )
 
 var (
@@ -90,6 +91,7 @@ func (s *SSHServer) genKey() string {
 }
 
 func (s *SSHServer) ListenAndServe(addr string, handler ssh.Handler, options ...ssh.Option) error {
-	ssh.Handle(s.HandleSession)
+	// 100 request per hour
+	ssh.Handle(RateLimiter(100, s.HandleSession))
 	return ssh.ListenAndServe(addr, handler, options...)
 }

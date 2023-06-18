@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
+
 	"github.com/gliderlabs/ssh"
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
-	"log"
-	"os"
 )
 
 func main() {
@@ -57,8 +58,10 @@ func main() {
 
 	privateKey := ssh.HostKeyFile(GetPublicKeyOrPanic())
 	sshServer := NewSSHServer(sugar, redisStore, GetHostOrPanic())
+
 	sugar.Infow("starting ssh server", "addr", fmt.Sprintf(":%s", GetSSHPortOrPanic()))
 	if err := sshServer.ListenAndServe(fmt.Sprintf(":%s", GetSSHPortOrPanic()), nil, privateKey); err != nil {
+		// throws an error
 		sugar.Errorw("failed to start ssh server", "err", err)
 	}
 }
