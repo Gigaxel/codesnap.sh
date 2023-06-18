@@ -15,10 +15,13 @@ import (
 var (
 	Reset  = "\033[0m"
 	Green  = "\033[32m"
-	Blue   = "\033[34m"
-	Red    = "\033[31m"
 	Gray   = "\033[37m"
 	Purple = "\033[35m"
+)
+
+const (
+	MaxUploadSize = 1024 * 1024     // 1 MB
+	MaxStreamSize = 5 * 1024 * 1024 // 5 MB
 )
 
 type SSHServer struct {
@@ -88,7 +91,7 @@ func (s *SSHServer) handleSessionWithCommand(sess ssh.Session) {
 }
 
 func (s *SSHServer) handleBasicSession(sess ssh.Session) {
-	buf := make([]byte, 1024*1000) // 1MB max size
+	buf := make([]byte, MaxUploadSize)
 	// read from ssh session 1MB at a time
 	n, err := io.ReadFull(sess, buf)
 	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
