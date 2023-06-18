@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+const TunnelTTL = 17 * time.Minute
+
 type TunnelData struct {
 	reader    io.Reader
 	doneCH    chan struct{}
@@ -58,7 +60,28 @@ func (t *TunnelManager) GetTunnel(id string) *TunnelData {
 func (t *TunnelManager) RemoveTunnel(id string) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
+	t.removeTunnel(id)
+}
+
+func (t *TunnelManager) removeTunnel(id string) {
 	delete(t.tunnels, id)
+}
+
+func (t *TunnelManager) CleanUp() uint {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+
+	cleanedUpCount := uint(0)
+
+	for id, tunnel := range t.tunnels {
+		if time.Since(tunnel.CreatedAt) > TunnelTTL {
+			tunnel.Done()
+			t.removeTunnel(id)
+			cleanedUpCount++
+		}
+	}
+
+	return cleanedUpCount
 }
 
 func (t *TunnelManager) TunnelCount() int {

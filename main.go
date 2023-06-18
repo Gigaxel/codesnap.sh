@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 	"log"
 	"os"
+	"time"
 )
 
 func main() {
@@ -54,6 +55,13 @@ func main() {
 		sugar.Infow("starting http server", "addr", addr)
 		if err := httpServer.ListenAndServe(addr); err != nil {
 			sugar.Fatal("failed to start http server", err)
+		}
+	}()
+
+	go func() {
+		for range time.Tick(3 * time.Minute) {
+			tunnelDelCount := tunnelManager.CleanUp()
+			sugar.Infow("cleaned up tunnels", "deletedTunnels", tunnelDelCount)
 		}
 	}()
 
