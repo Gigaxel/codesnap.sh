@@ -3,7 +3,13 @@
 ### Description
 Simple web app to share code snippets without leaving your terminal. 
 
+#### Upload code demo:
+
 ![codesnap.sh demo](./codesnap_demo.gif)
+
+#### Stream code demo:
+
+![codesnap.sh tunnel demo](./codesnap_tunnel_demo.gif)
 
 ### Project structure
 The project structure is super simple, and it doesn't use a lot of libraries. We use the default multiplexer and
