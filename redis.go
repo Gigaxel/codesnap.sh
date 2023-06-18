@@ -25,3 +25,11 @@ func (r *RedisStore) Get(ctx context.Context, key string) ([]byte, error) {
 func (r *RedisStore) Del(ctx context.Context, key string) error {
 	return r.redisClient.Del(ctx, key).Err()
 }
+
+func (r *RedisStore) Incr(ctx context.Context, key string) (int64, error) {
+	return r.redisClient.Incr(ctx, key).Result()
+}
+
+func (r *RedisStore) Exists(ctx context.Context, key string) (int64, error) {
+	return r.redisClient.Exists(ctx, key).Result()
+}

@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
 	"github.com/gliderlabs/ssh"
 	"github.com/google/uuid"
 	"io"
+	"net"
 	"strconv"
 	"strings"
 	"time"
@@ -22,6 +24,8 @@ var (
 const (
 	MaxUploadSize = 1024 * 1024     // 1 MB
 	MaxStreamSize = 5 * 1024 * 1024 // 5 MB
+	// specify how many request a client can send in an hour
+	rateLimiter = 100
 )
 
 type SSHServer struct {
@@ -29,6 +33,66 @@ type SSHServer struct {
 	store         CodeStore
 	tunnelManager *TunnelManager
 	host          string
+}
+
+// rate limiter
+func (s *SSHServer) requestCounter(sess ssh.Session) bool {
+	clientIP := sess.RemoteAddr().(*net.TCPAddr).IP.String()
+	// if client exists in redis -> exists = 1, else -> exists = 0
+	exists, err := s.store.Exists(sess.Context(), clientIP)
+	if err != nil {
+		s.logger.Errorw("Error checking client exists in redis:", "error", err)
+		return false
+	}
+	// create client in redis for the first time
+	if exists == 0 {
+		// set the expiration time to one hour, so after an hour, client's information will be deleted from redis
+		// note that every one hour the client will be removed from redis and if a new request is sent, it will be created again
+		err := s.store.Set(sess.Context(), clientIP, 1, time.Hour)
+		if err != nil {
+			s.logger.Errorw("Error setting the client in redis:", "error", err)
+			return false
+		}
+	} else {
+		// get the value of clientIP in redis
+		value, err := s.store.Get(context.Background(), clientIP)
+
+		if err != nil {
+			s.logger.Errorw("Error getting the number of requests of the client:", "error", err)
+			return false
+		}
+		// convert value of Get to integer
+		counter, err := strconv.Atoi(string(value))
+		if err != nil {
+			s.logger.Errorw("Error getting a string from redis instead of a number:", "error", err)
+			return false
+		}
+		// client has sent more than 100 requests for the last hour
+		if counter > rateLimiter {
+			// block the client for one hour
+			err = s.store.Set(sess.Context(), clientIP, -1, time.Hour)
+			if err != nil {
+				s.logger.Errorw("Error blocking the client in redis:", "error", err)
+				return false
+			}
+			s.logger.Warnw("Blocked client due to excessive SSH requests", "clientIP", clientIP)
+			// terminate
+			return false
+		} else if counter > 0 {
+			// counter between 0 and 100, so proceed to provide service ...
+			// Increment the request count for the client in Redis
+			_, err = s.store.Incr(sess.Context(), clientIP)
+			if err != nil {
+				s.logger.Errorw("Error incrementing request count:", "error", err)
+				return false
+			}
+		} else {
+			// counter <= 0 meaning that counter is equal to -1 and the client is still blocked
+			s.logger.Warnw("Blocked client attempted SSH connection", "clientIP", clientIP)
+			return false
+		}
+	}
+	return true
 }
 
 func NewSSHServer(logger Logger, store CodeStore, tunnelManager *TunnelManager, host string) *SSHServer {
@@ -129,6 +193,11 @@ func (s *SSHServer) HandleSession(sess ssh.Session) {
 			s.logger.Errorw("failed to close ssh session", "error", err)
 		}
 	}()
+
+	// call rate limiter and do not proceed if the client was blocked
+	if !s.requestCounter(sess) {
+		return
+	}
 
 	if len(sess.Command()) > 0 {
 		s.handleSessionWithCommand(sess)
