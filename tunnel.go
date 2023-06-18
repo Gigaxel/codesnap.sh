@@ -60,3 +60,9 @@ func (t *TunnelManager) RemoveTunnel(id string) {
 	defer t.lock.Unlock()
 	delete(t.tunnels, id)
 }
+
+func (t *TunnelManager) TunnelCount() int {
+	t.lock.RLock()
+	defer t.lock.RUnlock()
+	return len(t.tunnels)
+}

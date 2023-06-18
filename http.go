@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/redis/go-redis/v9"
 	"html/template"
@@ -87,12 +88,37 @@ func (h *HTTPServer) handleTunnel(w http.ResponseWriter, r *http.Request) {
 	h.logger.Debugw("copied bytes from tunnel to http response", "key", key, "bytes", n)
 }
 
+func (h *HTTPServer) getTunnelCount(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		w.Write([]byte("405 - Method Not Allowed"))
+		return
+	}
+
+	type tunnelCount struct {
+		TunnelCount int `json:"tunnelCount"`
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	tc := tunnelCount{h.tunnelManager.TunnelCount()}
+
+	err := json.NewEncoder(w).Encode(tc)
+	if err != nil {
+		h.logger.Errorw("failed to encode tunnel count", "error", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("500 - Something bad happened!"))
+		return
+	}
+}
+
 func (h *HTTPServer) ListenAndServe(addr string) error {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/", h.handleHomePage)
 	mux.HandleFunc("/c/", h.handleCodePage)
 	mux.HandleFunc("/t/", h.handleTunnel)
+	mux.HandleFunc("/tunnels", h.getTunnelCount)
 
 	fs := http.FileServer(http.Dir("./static"))
 	mux.Handle("/static/", http.StripPrefix("/static/", fs))
