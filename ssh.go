@@ -22,6 +22,8 @@ var (
 const (
 	MaxUploadSize = 1024 * 1024     // 1 MB
 	MaxStreamSize = 5 * 1024 * 1024 // 5 MB
+	MaxTtl        = 3600 * 24       // 24 hours
+	MinTtl        = 60              // 1 minute
 )
 
 type SSHServer struct {
@@ -68,29 +70,68 @@ func (s *SSHServer) handleTunnelCommand(sess ssh.Session) {
 	}
 }
 
-func (s *SSHServer) handleSessionWithCommand(sess ssh.Session) {
-	cmd := sess.Command()[0]
-	s.logger.Debugw("received command", "command", cmd)
+func (s *SSHServer) fillCommandsMap(commandsMap map[string]int, commands []string) {
 
-	cmdKey, cmdValue := s.parseCommand(cmd)
-	switch cmdKey {
-	case "tunnel":
-		shouldTunnel, err := strconv.ParseBool(cmdValue)
-		if err != nil {
-			s.logger.Errorw("failed to parse tunnel command", "error", err)
-			return
+	commandsMap["ttl"] = MaxTtl //default value
+
+	for i := 0; i < len(commands); i++ {
+		cmd := commands[i]
+
+		s.logger.Debugw("received command", "command", cmd)
+		cmdKey, cmdValue := s.parseCommand(cmd)
+
+		switch cmdKey {
+		case "tunnel": //if user wants to confirm tunnel
+			shouldTunnel, err := strconv.ParseBool(cmdValue)
+			if err != nil {
+				s.logger.Errorw("failed to parse tunnel command", "error", err)
+				return
+			}
+
+			var bit = 0
+			if shouldTunnel {
+				bit = 1
+			}
+			commandsMap["tunnel"] = bit
+
+		case "ttl": //if user wants to specify ttl time in seconds
+			ttl, err := strconv.ParseInt(cmdValue, 10, 32)
+
+			if err != nil {
+				s.logger.Errorw("failed to parse ttl command", "error", err)
+				return
+			}
+
+			if ttl > MaxTtl {
+				ttl = MaxTtl
+			}
+			if ttl <= MinTtl {
+				ttl = MinTtl
+			}
+
+			commandsMap["ttl"] = int(ttl)
+
+		default:
+			s.logger.Warnw("unknown command", "command", cmd)
 		}
-		if !shouldTunnel {
-			s.handleBasicSession(sess)
-			return
-		}
-		s.handleTunnelCommand(sess)
-	default:
-		s.logger.Warnw("unknown command", "command", cmd)
+
 	}
+
 }
 
-func (s *SSHServer) handleBasicSession(sess ssh.Session) {
+func (s *SSHServer) handleSessionWithCommand(sess ssh.Session) {
+
+	commandsMap := make(map[string]int)
+	s.fillCommandsMap(commandsMap, sess.Command())
+
+	if commandsMap["tunnel"] == 0 { //no tunnel
+		s.handleBasicSession(sess, time.Second*time.Duration(commandsMap["ttl"]))
+		return
+	}
+	s.handleTunnelCommand(sess) // with tunnel
+}
+
+func (s *SSHServer) handleBasicSession(sess ssh.Session, timeToKeep time.Duration) {
 	buf := make([]byte, MaxUploadSize)
 	// read from ssh session 1MB at a time
 	n, err := io.ReadFull(sess, buf)
@@ -101,7 +142,7 @@ func (s *SSHServer) handleBasicSession(sess ssh.Session) {
 
 	key := s.genKey()
 	s.logger.Debugw("writing to store", "key", key, "code", string(buf[:n]))
-	err = s.store.Set(sess.Context(), key, string(buf[:n]), time.Hour*24)
+	err = s.store.Set(sess.Context(), key, string(buf[:n]), timeToKeep)
 	s.logger.Debugw("wrote bytes", "bytes", n)
 	if err != nil {
 		s.logger.Errorw("failed to write to redis",
@@ -135,7 +176,7 @@ func (s *SSHServer) HandleSession(sess ssh.Session) {
 		return
 	}
 
-	s.handleBasicSession(sess)
+	s.handleBasicSession(sess, time.Hour*24)
 }
 
 func (s *SSHServer) genDataTransferredOverTunnelResponse() string {
@@ -184,3 +225,4 @@ func (s *SSHServer) ListenAndServe(addr string, handler ssh.Handler, options ...
 	ssh.Handle(s.HandleSession)
 	return ssh.ListenAndServe(addr, handler, options...)
 }
+
