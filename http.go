@@ -10,13 +10,24 @@ import (
 )
 
 type HTTPServer struct {
-	logger        Logger
-	store         CodeStore
-	tunnelManager *TunnelManager
+	logger              Logger
+	store               CodeStore
+	tunnelManager       *TunnelManager
+	chatCrawlerDetector *ChatCrawlerDetector
 }
 
-func NewHTTPServer(logger Logger, store CodeStore, tunnelManager *TunnelManager) *HTTPServer {
-	return &HTTPServer{logger: logger, store: store, tunnelManager: tunnelManager}
+func NewHTTPServer(
+	logger Logger,
+	store CodeStore,
+	tunnelManager *TunnelManager,
+	chatCrawlerDetector *ChatCrawlerDetector,
+) *HTTPServer {
+	return &HTTPServer{
+		logger:              logger,
+		store:               store,
+		tunnelManager:       tunnelManager,
+		chatCrawlerDetector: chatCrawlerDetector,
+	}
 }
 
 func (h *HTTPServer) handleHomePage(w http.ResponseWriter, r *http.Request) {
@@ -67,6 +78,12 @@ func (h *HTTPServer) handleTunnel(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("405 - Method Not Allowed"))
 		return
 	}
+	if h.chatCrawlerDetector.IsChatCrawler(r.Header.Get("User-Agent")) {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte("403 - Forbidden"))
+		return
+	}
+
 	key := r.URL.Path[3:]
 	tunnel := h.tunnelManager.GetTunnel(key)
 	if tunnel == nil {

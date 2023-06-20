@@ -47,8 +47,9 @@ func main() {
 	})
 	redisStore := NewRedisStore(redisClient)
 
+	chatCrawlerDetector := NewChatCrawlerDetector()
 	tunnelManager := NewTunnelManager()
-	httpServer := NewHTTPServer(sugar, redisStore, tunnelManager)
+	httpServer := NewHTTPServer(sugar, redisStore, tunnelManager, chatCrawlerDetector)
 
 	go func() {
 		addr := fmt.Sprintf(":%s", GetHTTPPortOrPanic())
