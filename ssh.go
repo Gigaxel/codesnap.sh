@@ -22,6 +22,7 @@ var (
 const (
 	MaxUploadSize = 1024 * 1024     // 1 MB
 	MaxStreamSize = 5 * 1024 * 1024 // 5 MB
+	KeySize       = 7
 )
 
 type SSHServer struct {
@@ -177,7 +178,7 @@ func (s *SSHServer) genKey() string {
 	id := uuid.New()
 	h := sha1.New()
 	h.Write([]byte(id.String()))
-	return hex.EncodeToString(h.Sum(nil))[:7]
+	return hex.EncodeToString(h.Sum(nil))[:KeySize]
 }
 
 func (s *SSHServer) ListenAndServe(addr string, handler ssh.Handler, options ...ssh.Option) error {

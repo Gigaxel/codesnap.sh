@@ -83,3 +83,10 @@ code {
     border-radius: 3px;
     margin-right: 10px;
 }
+
+.branding {
+    font-family: Courier, monospace;
+    color: #fff;
+    text-align: right;
+    margin: 0 40px 20px;
+}
