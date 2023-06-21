@@ -3,24 +3,49 @@
 <head>
     <title>codesnap.sh</title>
     <link rel="icon" href="../static/favicon.png"  />
+    <link rel="stylesheet" href="../static/style.css">
     <link rel="stylesheet"
           href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
     <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
 </head>
 <body>
-<pre id="pre">
-    <code id="code">
-       {{.}}
-    </code>
-</pre>
+<div style="text-align: center; margin-top: 50px;">
+    <button class="image-button" onclick="captureScreenshot()">Download Image</button>
+</div>
+<div class="gradient-background">
+    <div class="editor-window">
+        <div class="title-bar">
+            <div class="button red"></div>
+            <div class="button yellow"></div>
+            <div class="button green"></div>
+        </div>
+        <pre id="pre">
+            <code id="code">
+               {{.}}
+            </code>
+        </pre>
+    </div>
+</div>
 
 <script>
     hljs.highlightAll();
     const pre = document.getElementById('pre');
-    pre.innerHTML = pre.innerHTML.trimStart();
+    pre.innerHTML = pre.innerHTML.trimStart().trimEnd();
 
     const code = document.getElementById("code")
     code.innerHTML = code.innerHTML.trimStart().trimEnd();
+
+
+    function captureScreenshot() {
+        html2canvas(document.querySelector('.gradient-background')).then(function(canvas) {
+            var link = document.createElement('a');
+            link.href = canvas.toDataURL();
+            link.download = 'screenshot.png';
+            link.click();
+        });
+    }
 </script>
 </body>
 </html>
