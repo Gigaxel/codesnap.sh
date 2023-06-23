@@ -40,7 +40,7 @@
 
 
     function captureScreenshot() {
-        html2canvas(document.querySelector('.gradient-background')).then(function(canvas) {
+        html2canvas(document.querySelector('.gradient-background'), {scale: 2}).then(function(canvas) {
             var link = document.createElement('a');
             link.href = canvas.toDataURL();
             link.download = 'screenshot.png';
