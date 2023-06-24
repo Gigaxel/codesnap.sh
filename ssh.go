@@ -20,11 +20,12 @@ var (
 )
 
 const (
-	MaxUploadSize = 1024 * 1024     // 1 MB
-	MaxStreamSize = 5 * 1024 * 1024 // 5 MB
-	MaxTTL        = 24 * time.Hour
-	MinTTL        = 60 * time.Second
-	KeyLength     = 7
+	MaxUploadSize        = 1024 * 1024     // 1 MB
+	MaxStreamSize        = 5 * 1024 * 1024 // 5 MB
+	MaxTTL               = 24 * time.Hour
+	MinTTL               = 60 * time.Second
+	KeyLength            = 7
+	CodeUploadedCountKey = "code_uploaded_count"
 )
 
 type SSHServer struct {
@@ -137,12 +138,18 @@ func (s *SSHServer) handleBasicSession(sess ssh.Session, ttl time.Duration) {
 		)
 		return
 	}
+	err = s.store.Incr(sess.Context(), CodeUploadedCountKey)
+	if err != nil {
+		s.logger.Errorw("failed to increment code uploaded count", "error", err)
+		return
+	}
 
 	_, err = sess.Write([]byte(s.genBasicResponse(key)))
 	if err != nil {
 		s.logger.Errorw("failed to write to ssh session", "error", err)
 		return
 	}
+
 }
 
 func (s *SSHServer) HandleSession(sess ssh.Session) {

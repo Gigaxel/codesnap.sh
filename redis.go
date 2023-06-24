@@ -18,6 +18,10 @@ func (r *RedisStore) Set(ctx context.Context, key string, value any, ttl time.Du
 	return r.redisClient.Set(ctx, key, value, ttl).Err()
 }
 
+func (r *RedisStore) Incr(ctx context.Context, key string) error {
+	return r.redisClient.Incr(ctx, key).Err()
+}
+
 func (r *RedisStore) Get(ctx context.Context, key string) ([]byte, error) {
 	return r.redisClient.Get(ctx, key).Bytes()
 }

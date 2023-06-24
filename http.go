@@ -31,7 +31,35 @@ func NewHTTPServer(
 }
 
 func (h *HTTPServer) handleHomePage(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./static/index.html")
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		w.Write([]byte("405 - Method Not Allowed"))
+		return
+	}
+	t, err := template.New("index.html").ParseFiles("./templates/index.html")
+	if err != nil {
+		h.logger.Errorw("failed to parse template", "error", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("500 - Something bad happened!"))
+		return
+	}
+	key, err := h.store.Get(r.Context(), CodeUploadedCountKey)
+	switch {
+	case errors.Is(err, redis.Nil):
+		key = []byte("0")
+	case err != nil:
+		h.logger.Errorw("failed to get key", "error", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("500 - Something bad happened!"))
+		return
+	}
+	err = t.Execute(w, string(key))
+	if err != nil {
+		h.logger.Errorw("failed to execute template", "error", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("500 - Something bad happened!"))
+		return
+	}
 }
 
 func (h *HTTPServer) handleCodePage(w http.ResponseWriter, r *http.Request) {
