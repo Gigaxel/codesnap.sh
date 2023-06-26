@@ -1,16 +1,17 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>codesnap.sh - don't leave your terminal</title>
-    <meta name="description" content="Share code without leaving your terminal!">
+    <title>codesnap.sh - Share Code without Leaving Your Terminal</title>
+    <meta name="description" content="Share code snippets with others, without leaving the terminal.">
     <meta name="robots" content="index, follow">
-    <link rel="icon" href="../static/favicon.png"  />
+    <link rel="icon" href="../static/favicon.png" />
     <link rel="stylesheet" href="../static/style.css" />
 
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
+            font-family: 'Fira Code', monospace;
+            background-color: #252526;
+            color: #cccccc;
             margin: 0;
             padding: 0;
         }
@@ -23,38 +24,88 @@
         }
 
         h1 {
-            font-size: 28px;
-            color: #333;
+            font-size: 36px;
+            color: #cccccc;
+            margin-top: 0;
         }
 
-        .code-snippet {
-            text-align: left;
-            background-color: #fff;
+        p {
+            font-size: 18px;
+            color: #cccccc;
+            margin: 4rem auto;
+        }
+
+        .terminal {
+            position: relative;
+            background-color: #000000;
             border-radius: 5px;
+            padding: 0;
+            margin: 2rem auto;
+            width: 90%;
+            max-width: 600px;
+            overflow: hidden;
+        }
+
+        .terminal-bar {
+            background-color: #1f1f1f;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+        }
+
+        .terminal-icons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .terminal-icon {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .terminal-content {
             padding: 20px;
-            margin-top: 20px;
-            font-family: monospace;
+            font-family: 'Fira Code', monospace;
             font-size: 14px;
+            color: #00ff00;
+            line-height: 1.4;
+        }
+
+        code {
+            background: black;
+            text-align: left;
+        }
+
+        .command-prompt {
+            color: #00ff00;
         }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>Welcome to codesnap.sh!</h1>
-    <p>This is a place to share code snippets with others, without leaving the terminal ⚡️</p>
-    <div class="code-snippet">
-        <code>
-            cat main.go | ssh codesnap.sh<br>
-            <br>// or<br><br>
-            ssh codesnap.sh &lt; main.go
-            <br><br>
-            /* or if you want to stream your code directly to someone else, blocking until he receives it
-            */
-            <br><br>
-            ssh codesnap.sh tunnel=true < main.go
-        </code>
+    <h1>Welcome to <span style="color: #00ff00;">codesnap.sh</span>!</h1>
+    <p>Welcome to the code-sharing paradise!<br> Share your snippets, no terminal breakup required ⚡️️</p>
+    <div class="terminal">
+        <div class="terminal-bar">
+            <div class="terminal-icons">
+                <div class="terminal-icon" style="background-color: #ff5f57;"></div>
+                <div class="terminal-icon" style="background-color: #ffbd2e;"></div>
+                <div class="terminal-icon" style="background-color: #28ca42;"></div>
+            </div>
+        </div>
+        <div class="terminal-content">
+            <code>
+                <span class="command-prompt">$</span> cat main.go | ssh codesnap.sh<br>
+                <br>// or<br><br>
+                <span class="command-prompt">$</span> ssh codesnap.sh &lt; main.go
+                <br><br>
+                <span class="command-prompt">$</span> ssh codesnap.sh tunnel=true &lt; main.go
+            </code>
+        </div>
     </div>
-    <div style="font-family: monospace; font-size: 18px; margin-top: 20px;">
+    <div style="font-family: 'Fira Code', monospace; font-size: 18px; margin-top: 20px;">
         Code snippets uploaded so far:
         <div style="margin-top: 20px;">
             <h2>{{.}}</h2>
