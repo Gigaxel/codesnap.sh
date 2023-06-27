@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"github.com/redis/go-redis/v9"
 	"html/template"
 	"io"
 	"net/http"
@@ -11,14 +10,14 @@ import (
 
 type HTTPServer struct {
 	logger              Logger
-	store               CodeStore
+	store               Store
 	tunnelManager       *TunnelManager
 	chatCrawlerDetector *ChatCrawlerDetector
 }
 
 func NewHTTPServer(
 	logger Logger,
-	store CodeStore,
+	store Store,
 	tunnelManager *TunnelManager,
 	chatCrawlerDetector *ChatCrawlerDetector,
 ) *HTTPServer {
@@ -45,7 +44,7 @@ func (h *HTTPServer) handleHomePage(w http.ResponseWriter, r *http.Request) {
 	}
 	key, err := h.store.Get(r.Context(), CodeUploadedCountKey)
 	switch {
-	case errors.Is(err, redis.Nil):
+	case errors.Is(err, ErrKeyNotFound):
 		key = []byte("0")
 	case err != nil:
 		h.logger.Errorw("failed to get key", "error", err)
@@ -71,7 +70,7 @@ func (h *HTTPServer) handleCodePage(w http.ResponseWriter, r *http.Request) {
 	key := r.URL.Path[3:]
 	code, err := h.store.Get(r.Context(), key)
 	switch {
-	case errors.Is(err, redis.Nil):
+	case errors.Is(err, ErrKeyNotFound):
 		h.logger.Infow("key not found", "key", key)
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("404 - Not Found"))

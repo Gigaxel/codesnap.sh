@@ -46,6 +46,7 @@ func main() {
 		DB:       GetRedisDBOrPanic(),
 	})
 	redisStore := NewRedisStore(redisClient)
+	rateLimiter := NewRateLimiter(redisStore)
 
 	chatCrawlerDetector := NewChatCrawlerDetector()
 	tunnelManager := NewTunnelManager()
@@ -67,7 +68,7 @@ func main() {
 	}()
 
 	privateKey := ssh.HostKeyFile(GetPublicKeyOrPanic())
-	sshServer := NewSSHServer(sugar, redisStore, tunnelManager, GetHostOrPanic())
+	sshServer := NewSSHServer(sugar, redisStore, rateLimiter, tunnelManager, GetHostOrPanic())
 	sugar.Infow("starting ssh server", "addr", fmt.Sprintf(":%s", GetSSHPortOrPanic()))
 	if err := sshServer.ListenAndServe(fmt.Sprintf(":%s", GetSSHPortOrPanic()), nil, privateKey); err != nil {
 		sugar.Errorw("failed to start ssh server", "err", err)

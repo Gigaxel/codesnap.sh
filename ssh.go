@@ -7,6 +7,7 @@ import (
 	"github.com/gliderlabs/ssh"
 	"github.com/google/uuid"
 	"io"
+	"net"
 	"strconv"
 	"strings"
 	"time"
@@ -14,6 +15,7 @@ import (
 
 var (
 	Reset  = "\033[0m"
+	Red    = "\033[31m"
 	Green  = "\033[32m"
 	Gray   = "\033[37m"
 	Purple = "\033[35m"
@@ -30,13 +32,26 @@ const (
 
 type SSHServer struct {
 	logger        Logger
-	store         CodeStore
+	store         Store
 	tunnelManager *TunnelManager
+	rateLimiter   *RateLimiter
 	host          string
 }
 
-func NewSSHServer(logger Logger, store CodeStore, tunnelManager *TunnelManager, host string) *SSHServer {
-	return &SSHServer{logger: logger, store: store, tunnelManager: tunnelManager, host: host}
+func NewSSHServer(
+	logger Logger,
+	store Store,
+	rateLimiter *RateLimiter,
+	tunnelManager *TunnelManager,
+	host string,
+) *SSHServer {
+	return &SSHServer{
+		logger:        logger,
+		store:         store,
+		rateLimiter:   rateLimiter,
+		tunnelManager: tunnelManager,
+		host:          host,
+	}
 }
 
 func (s *SSHServer) parseCommand(cmd string) (Command, string) {
@@ -138,7 +153,7 @@ func (s *SSHServer) handleBasicSession(sess ssh.Session, ttl time.Duration) {
 		)
 		return
 	}
-	err = s.store.Incr(sess.Context(), CodeUploadedCountKey)
+	_, err = s.store.Incr(sess.Context(), CodeUploadedCountKey)
 	if err != nil {
 		s.logger.Errorw("failed to increment code uploaded count", "error", err)
 		return
@@ -152,6 +167,20 @@ func (s *SSHServer) handleBasicSession(sess ssh.Session, ttl time.Duration) {
 
 }
 
+func (s *SSHServer) isRateLimited(sess ssh.Session) (bool, error) {
+	ip, _, err := net.SplitHostPort(sess.RemoteAddr().String())
+	if err != nil {
+		return false, err
+	}
+
+	limited, err := s.rateLimiter.IsRateLimited(sess.Context(), ip)
+	if err != nil {
+		return false, err
+	}
+
+	return limited, nil
+}
+
 func (s *SSHServer) HandleSession(sess ssh.Session) {
 	defer func() {
 		err := sess.Close()
@@ -159,6 +188,21 @@ func (s *SSHServer) HandleSession(sess ssh.Session) {
 			s.logger.Errorw("failed to close ssh session", "error", err)
 		}
 	}()
+
+	rateLimited, err := s.isRateLimited(sess)
+	if err != nil {
+		s.logger.Errorw("failed to check rate limit", "error", err)
+		return
+	}
+	if rateLimited {
+		s.logger.Infow("rate limited", "ip", sess.RemoteAddr().String())
+		_, err = sess.Write([]byte(s.genRateLimitedResponse()))
+		if err != nil {
+			s.logger.Errorw("failed to write to ssh session", "error", err)
+			return
+		}
+		return
+	}
 
 	if len(sess.Command()) > 0 {
 		s.handleSessionWithCommand(sess)
@@ -197,6 +241,18 @@ func (s *SSHServer) genBasicResponse(key string) string {
 	linkToCode := fmt.Sprintf("%s/c/%s", s.host, key)
 	link := fmt.Sprintf("%s%s%s", Purple, linkToCode, Reset)
 	output += fmt.Sprintf("Link: %s\n\n", link)
+
+	output += fmt.Sprintf("%s+------------------------+\n", Green)
+
+	return output
+}
+
+func (s *SSHServer) genRateLimitedResponse() string {
+	output := fmt.Sprintf("%s+------------------------+\n", Gray)
+	output += fmt.Sprintf("|    💻 codesnap.sh 💻   |\n")
+	output += fmt.Sprintf("+------------------------+%s\n\n", Reset)
+
+	output += fmt.Sprintf("%sYou have been rate limited. Please try again later.%s\n\n", Red, Reset)
 
 	output += fmt.Sprintf("%s+------------------------+\n", Green)
 
