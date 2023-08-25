@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
+	"time"
+
 	"github.com/gliderlabs/ssh"
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
-	"log"
-	"os"
-	"time"
 )
 
 func main() {
@@ -37,7 +38,13 @@ func main() {
 
 	logger.Debug("running in debug mode")
 
-	defer logger.Sync()
+	defer func() {
+		err := logger.Sync()
+		if err != nil {
+			log.Fatal("failed to sync zap logger", err)
+			return
+		}
+	}()
 	sugar := logger.Sugar()
 
 	redisClient := redis.NewClient(&redis.Options{
