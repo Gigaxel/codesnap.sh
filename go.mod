@@ -1,6 +1,6 @@
 module github.com/gigaxel/codesnap.sh
 
-go 1.21
+go 1.22
 
 require (
 	github.com/gliderlabs/ssh v0.3.5
